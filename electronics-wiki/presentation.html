@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>基礎電子學入門教學簡報 — 基於 LLM Wiki 知識庫建構</title>
+  <style>
+    :root {
+      --bg-canvas: #f1f5f9;
+      --bg-slide: #ffffff;
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --border-light: #e2e8f0;
+      --primary: #2563eb;
+      --primary-soft: #eff6ff;
+      --emerald: #059669;
+      --emerald-soft: #ecfdf5;
+      --indigo: #4f46e5;
+      --indigo-soft: #eef2ff;
+      --violet: #7c3aed;
+      --violet-soft: #f5f3ff;
+      --amber: #d97706;
+      --amber-soft: #fffbeb;
+      --rose: #e11d48;
+      --rose-soft: #fff1f2;
+      --shadow-lg: 0 20px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.05);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      background-color: var(--bg-canvas);
+      color: var(--text-main);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Top Navigation Bar */
+    header {
+      height: 56px;
+      background: #0f172a;
+      color: #f8fafc;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      flex-shrink: 0;
+      z-index: 20;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 15px;
+      letter-spacing: 0.3px;
+    }
+
+    .brand-badge {
+      background: #3b82f6;
+      color: #fff;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-weight: 600;
+    }
+
+    .nav-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .nav-btn {
+      background: #1e293b;
+      color: #e2e8f0;
+      border: 1px solid #334155;
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+
+    .nav-btn:hover:not(:disabled) {
+      background: #3b82f6;
+      border-color: #3b82f6;
+      color: #fff;
+    }
+
+    .nav-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    select#slideSelect {
+      background: #1e293b;
+      color: #f8fafc;
+      border: 1px solid #334155;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      max-width: 260px;
+      cursor: pointer;
+    }
+
+    .progress-track {
+      height: 4px;
+      background: #cbd5e1;
+      width: 100%;
+      flex-shrink: 0;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #2563eb, #7c3aed);
+      width: 9%;
+      transition: width 0.3s ease;
+    }
+
+    /* Slide Viewport */
+    main {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px 28px;
+      overflow-y: auto;
+    }
+
+    .slide {
+      display: none;
+      width: 100%;
+      max-width: 1140px;
+      min-height: 620px;
+      background: var(--bg-slide);
+      border-radius: 16px;
+      box-shadow: var(--shadow-lg);
+      border: 1px solid var(--border-light);
+      padding: 36px 44px 26px;
+      flex-direction: column;
+      justify-content: space-between;
+      animation: fadeIn 0.25s ease;
+    }
+
+    .slide.active { display: flex; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Slide Typography & Layout */
+    .slide-header {
+      margin-bottom: 18px;
+      border-bottom: 2px solid #f1f5f9;
+      padding-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 16px;
+    }
+
+    .module-tag {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 6px;
+      margin-bottom: 6px;
+      letter-spacing: 0.5px;
+    }
+
+    .tag-blue { background: var(--primary-soft); color: var(--primary); }
+    .tag-emerald { background: var(--emerald-soft); color: var(--emerald); }
+    .tag-indigo { background: var(--indigo-soft); color: var(--indigo); }
+    .tag-violet { background: var(--violet-soft); color: var(--violet); }
+    .tag-amber { background: var(--amber-soft); color: var(--amber); }
+
+    h1 { font-size: 36px; line-height: 1.25; color: #0f172a; }
+    h2 { font-size: 25px; line-height: 1.3; color: #0f172a; }
+    h3 { font-size: 17px; margin-bottom: 8px; color: #1e293b; }
+    p, li { font-size: 15px; line-height: 1.65; color: #334155; }
+
+    .slide-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 16px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      align-items: stretch;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    .card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 18px 20px;
+    }
+
+    .card-highlight {
+      background: var(--primary-soft);
+      border-color: #bfdbfe;
+    }
+
+    .analogy-box {
+      background: #fffbeb;
+      border-left: 4px solid #f59e0b;
+      padding: 12px 16px;
+      border-radius: 0 10px 10px 0;
+      font-size: 14.5px;
+      color: #78350f;
+    }
+
+    .trap-box {
+      background: var(--rose-soft);
+      border-left: 4px solid var(--rose);
+      padding: 12px 16px;
+      border-radius: 0 10px 10px 0;
+      font-size: 14px;
+      color: #881337;
+    }
+
+    .formula {
+      display: inline-block;
+      background: #0f172a;
+      color: #38bdf8;
+      font-family: "Cambria Math", "Times New Roman", monospace;
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 15px;
+      font-weight: 600;
+      margin: 4px 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+      background: #fff;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    th, td {
+      border: 1px solid #cbd5e1;
+      padding: 8px 12px;
+      text-align: left;
+    }
+
+    th {
+      background: #1e293b;
+      color: #f8fafc;
+      font-weight: 600;
+    }
+
+    tr:nth-child(even) td { background: #f8fafc; }
+
+    ul.clean-list {
+      padding-left: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    /* Wiki Source Footer */
+    .slide-footer {
+      margin-top: 18px;
+      padding-top: 10px;
+      border-top: 1px dashed #cbd5e1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: #64748b;
+    }
+
+    .wiki-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .wiki-pill {
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      color: #334155;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 11.5px;
+    }
+
+    /* Interactive Controls */
+    .sim-control {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: #fff;
+      padding: 14px;
+      border-radius: 10px;
+      border: 1px solid #cbd5e1;
+    }
+
+    .sim-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 14px;
+    }
+
+    input[type="range"] { flex: 1; accent-color: #2563eb; cursor: pointer; }
+
+    .toggle-btn {
+      padding: 6px 14px;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      font-weight: 700;
+      cursor: pointer;
+      background: #e2e8f0;
+      color: #334155;
+    }
+
+    .toggle-btn.on {
+      background: #2563eb;
+      color: #fff;
+      border-color: #1d4ed8;
+    }
+
+    /* Quiz Styling */
+    .quiz-item {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 12px 16px;
+    }
+
+    .quiz-q { font-weight: 700; font-size: 14.5px; margin-bottom: 8px; color: #0f172a; }
+
+    .quiz-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .quiz-opt {
+      background: #fff;
+      border: 1px solid #cbd5e1;
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .quiz-opt:hover { border-color: #2563eb; background: #eff6ff; }
+    .quiz-opt.correct { background: #dcfce7; border-color: #16a34a; color: #14532d; font-weight: 700; }
+    .quiz-opt.wrong { background: #fee2e2; border-color: #dc2626; color: #7f1d1d; }
+
+    .quiz-feedback {
+      margin-top: 6px;
+      font-size: 12.5px;
+      color: #334155;
+      display: none;
+    }
+
+    @media (max-width: 900px) {
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+      .slide { padding: 24px; min-height: auto; }
+      body { height: auto; overflow: auto; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span>⚡ 基礎電子學入門教學</span>
+    <span class="brand-badge">LLM Wiki 驅動生成</span>
+  </div>
+  <div class="nav-controls">
+    <select id="slideSelect" aria-label="選擇投影片"></select>
+    <button class="nav-btn" id="prevBtn">← 上一頁</button>
+    <span id="pageIndicator" style="font-size:13px; color:#94a3b8; min-width:52px; text-align:center;">1 / 11</span>
+    <button class="nav-btn" id="nextBtn">下一頁 →</button>
+  </div>
+</header>
+<div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+
+<main>
+
+  <!-- SLIDE 1: 封面 -->
+  <section class="slide active" data-title="01. 封面與學習地圖">
+    <div class="slide-body" style="justify-content:center; text-align:center; gap:22px;">
+      <div>
+        <span class="module-tag tag-blue">ZERO-TO-ONE ELECTRONICS GUIDE</span>
+        <h1 style="margin-top:10px; font-size:40px;">從水流直覺到運算放大器：<br>零基礎看懂基礎電子學</h1>
+        <p style="font-size:17px; color:#475569; max-width:740px; margin:14px auto 0;">
+          本簡報以結構化 <strong>LLM Wiki 知識庫（16 個核心概念節點）</strong> 為唯一知識來源，<br>
+          透過生活類比、互動模擬與常見誤區剖析，帶你逐步掌握類比與數位電路的運作全貌。
+        </p>
+      </div>
+
+      <div class="grid-3" style="text-align:left; margin-top:10px;">
+        <div class="card">
+          <h3>🌊 模組 0–1：信號與單向閥</h3>
+          <p style="font-size:13.5px;">從電壓/電流水流直覺出發，認識交流波形，並用<strong>二極體</strong>將交流電整流為平穩直流電。</p>
+        </div>
+        <div class="card">
+          <h3>🎛️ 模組 2–4：主動放大與數位邏輯</h3>
+          <p style="font-size:13.5px;">比較 <strong>BJT</strong>（電流控制）與 <strong>MOSFET</strong>（電壓控制）如何放大微弱訊號，並組合成零靜態耗電的 <strong>CMOS</strong> 邏輯閘。</p>
+        </div>
+        <div class="card">
+          <h3>🧠 模組 5：運算放大器（OPA）</h3>
+          <p style="font-size:13.5px;">利用負回授「虛短路」實現加減微積分，並打造抗雜訊比較器、波形產生器與主動濾波器。</p>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer">
+      <div class="wiki-pills">
+        <span>📚 Wiki 來源：</span>
+        <span class="wiki-pill">SCHEMA.md</span>
+        <span class="wiki-pill">wiki/index.md</span>
+      </div>
+      <span>操作提示：可使用鍵盤 ← / → 方向鍵翻頁</span>
+    </div>
+  </section>
+
+  <!-- SLIDE 2: 系統架構與 Loop/Graph 設計 -->
+  <section class="slide" data-title="02. LLM Wiki Loop 與 Graph 架構設計">
+    <div class="slide-header">
+      <div>
+        <span class="module-tag tag-violet">SYSTEM ARCHITECTURE · 作業核心說明</span>
+        <h2>資訊如何取得、整理、檢查並編譯成簡報？</h2>
+      </div>
+    </div>
+    <div class="slide-body">
+      <div class="card" style="padding:14px;">
+        <svg viewBox="0 0 980 185" width="100%" height="175" style="display:block;">
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1 L 10 5 L 0 9 z" fill="#475569"/>
+            </marker>
+            <marker id="arrowBlue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1 L 10 5 L 0 9 z" fill="#2563eb"/>
+            </marker>
+          </defs>
+          <!-- Node 1 -->
+          <rect x="15" y="35" width="185" height="95" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+          <text x="107" y="62" text-anchor="middle" font-weight="bold" font-size="14" fill="#1e3a8a">1. Schema 規範定義</text>
+          <text x="107" y="84" text-anchor="middle" font-size="12" fill="#334155">確立零基礎受眾定位</text>
+          <text x="107" y="102" text-anchor="middle" font-size="12" fill="#334155">訂定統一頁面模板與規則</text>
+          <text x="107" y="120" text-anchor="middle" font-size="11" fill="#2563eb" font-family="monospace">SCHEMA.md</text>
+
+          <line x1="200" y1="82" x2="245" y2="82" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+
+          <!-- Node 2: Ingest Loop -->
+          <rect x="250" y="20" width="235" height="125" rx="10" fill="#ecfdf5" stroke="#059669" stroke-width="2"/>
+          <text x="367" y="45" text-anchor="middle" font-weight="bold" font-size="14" fill="#065f46">2. Ingest 整理迴圈 (×5 輪)</text>
+          <text x="367" y="66" text-anchor="middle" font-size="12" fill="#334155">逐篇讀入 raw/01~05.md</text>
+          <text x="367" y="84" text-anchor="middle" font-size="12" fill="#047857" font-weight="bold">「先討論結構、後生成頁面」</text>
+          <text x="367" y="102" text-anchor="middle" font-size="12" fill="#334155">建立 [[雙向連結]] 並更新舊頁</text>
+          <text x="367" y="124" text-anchor="middle" font-size="11" fill="#059669" font-family="monospace">15 概念頁 + index/log.md</text>
+          <!-- Self Loop -->
+          <path d="M 325 20 C 325 -2, 410 -2, 410 18" fill="none" stroke="#059669" stroke-width="2" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+
+          <line x1="485" y1="82" x2="530" y2="82" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+
+          <!-- Node 3: Lint Loop -->
+          <rect x="535" y="20" width="215" height="125" rx="10" fill="#fffbeb" stroke="#d97706" stroke-width="2"/>
+          <text x="642" y="45" text-anchor="middle" font-weight="bold" font-size="14" fill="#92400e">3. Lint 檢查與修補迴圈</text>
+          <text x="642" y="66" text-anchor="middle" font-size="12" fill="#334155">• 孤島頁面檢查（0 孤島）</text>
+          <text x="642" y="84" text-anchor="middle" font-size="12" fill="#334155">• 跨章節名詞消歧義</text>
+          <text x="642" y="102" text-anchor="middle" font-size="12" fill="#b45309" font-weight="bold">• 偵測缺口→補基本電學三要素</text>
+          <text x="642" y="124" text-anchor="middle" font-size="11" fill="#d97706" font-family="monospace">擴充至 16 個閉環節點</text>
+          <!-- Feedback arrow back to Ingest -->
+          <path d="M 600 145 C 550 175, 430 175, 385 147" fill="none" stroke="#d97706" stroke-width="2" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+
+          <line x1="750" y1="82" x2="795" y2="82" stroke="#2563eb" stroke-width="2" marker-end="url(#arrowBlue)"/>
+
+          <!-- Node 4: Compile -->
+          <rect x="800" y="35" width="165" height="95" rx="10" fill="#f5f3ff" stroke="#7c3aed" stroke-width="2"/>
+          <text x="882" y="62" text-anchor="middle" font-weight="bold" font-size="14" fill="#5b21b6">4. 簡報編譯節點</text>
+          <text x="882" y="84" text-anchor="middle" font-size="12" fill="#334155">轉化為線性教學敘事</text>
+          <text x="882" y="102" text-anchor="middle" font-size="12" fill="#334155">附來源追蹤與互動測驗</text>
+          <text x="882" y="120" text-anchor="middle" font-size="11" fill="#7c3aed" font-family="monospace">presentation.html</text>
+        </svg>
+      </div>
+
+      <div class="grid-3">
+        <div class="card">
+          <h3>📥 取得與增量整理 (Ingest)</h3>
+          <p style="font-size:13.5px;">不一次塞入全部講義，而是分 <strong>5 輪「先討論、後生成」</strong>。每次新知識進入時，同步回頭修改舊頁面加入 <code>[[雙向連結]]</code>，形成網狀知識圖譜而非孤立筆記。</p>
+        </div>
+        <div class="card">
+          <h3>🔍 品質驗證與缺口修補 (Lint)</h3>
+          <p style="font-size:13.5px;">在產出簡報前執行系統健檢：釐清「BJT 飽和區 vs. MOSFET 飽和區」同名陷阱，並站在零基礎視角發現缺少電壓/電流直覺，主動增補 <code>基本電學三要素.md</code>。</p>
+        </div>
+        <div class="card">
+          <h3>🎯 單一事實來源 (SSOT)</h3>
+          <p style="font-size:13.5px;">簡報編譯階段嚴格限制只能引用 <code>wiki/concepts/</code> 內已驗證的 16 個頁面，且每張投影片底部皆標註對應的 Wiki 檔案來源，杜絕幻覺與離題。</p>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer">
+      <div class="wiki-pills">
+        <span>📚 Wiki 來源：</span>
+        <span class="wiki-pill">SCHEMA.md</span>
+        <span class="wiki-pill">wiki/log.md</span>
+        <span class="wiki-pill">wiki/index.md</span>
+      </div>
+      <span>架構設計說明頁</span>
+    </div>
+  </section>
+
+  <!-- SLIDE 3: 模組 0 基本電學三要素 -->
+  <section class="slide" data-title="03. 模組零：基本電學三要素與水流類比">
+    <div class="slide-header">
+      <div>
+        <span class="module-tag tag-blue">MODULE 0 · LINT 增補前置基礎</span>
+        <h2>電學基礎三要素：看懂電路的水流直覺</h2>
+      </div>
+    </div>
+    <div class="slide-body">
+      <div class="analogy-box">
+        <strong>💡 一句話秒懂：</strong>把電路想像成「水塔與水管系統」——<strong>電壓 (V)</strong> 是水壓高度差，<strong>電流 (I)</strong> 是水管裡的水流量，<strong>電阻 (R)</strong> 則是水管狹窄造成的阻力。
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>三大物理量與歐姆定律</h3>
+          <ul class="clean-list">
+            <li><strong>電壓 Voltage (<i>V</i>，伏特 V)</strong>：推動電荷移動的能量差（水壓）。</li>
+            <li><strong>電流 Current (<i>I</i>，安培 A)</strong>：每秒流過導線截面的電荷量（水流量）。</li>
+            <li><strong>電阻 Resistance (<i>R</i>，歐姆 &Omega;)</strong>：材料阻礙電流的能力（水管阻力）。</li>
+          </ul>
+          <div style="margin-top:12px;">
+            <span class="formula">歐姆定律：V = I &times; R &nbsp;|&nbsp; 電功率：P = V &times; I</span>
+          </div>
+          <div class="trap-box" style="margin-top:12px;">
+            <strong>⚠️ 常見迷思：</strong>「電壓高就一定會電傷人？」<br>
+            真正造成灼傷與生理危害的是流過心臟的<strong>電流 (<i>I</i>)</strong>，但需要足夠高的<strong>電壓 (<i>V</i>)</strong> 才能突破皮膚<strong>電阻 (<i>R</i>)</strong>。
+          </div>
+        </div>
+
+        <div class="card card-highlight">
+          <h3>🎛️ 互動實驗室：歐姆定律即時計算器</h3>
+          <p style="font-size:13.5px; margin-bottom:10px;">拖動滑桿調整電源電壓與限流電阻，觀察電流與消耗功率變化：</p>
+          <div class="sim-control">
+            <div class="sim-row">
+              <label for="vRange"><strong>電源電壓 (<i>V</i>)</strong>：<span id="vVal">9</span> V</label>
+              <input type="range" id="vRange" min="1" max="24" value="9" />
+            </div>
+            <div class="sim-row">
+              <label for="rRange"><strong>電阻阻值 (<i>R</i>)</strong>：<span id="rVal">450</span> &Omega;</label>
+              <input type="range" id="rRange" min="100" max="2000" step="50" value="450" />
+            </div>
+            <div style="background:#0f172a; color:#f8fafc; padding:12px; border-radius:8px; display:flex; justify-content:space-around; text-align:center;">
+              <div>
+                <div style="font-size:12px; color:#94a3b8;">流過電流 <i>I = V / R</i></div>
+                <div style="font-size:20px; font-weight:700; color:#38bdf8;"><span id="iOut">20.0</span> mA</div>
+              </div>
+              <div>
+                <div style="font-size:12px; color:#94a3b8;">消耗功率 <i>P = V &times; I</i></div>
+                <div style="font-size:20px; font-weight:700; color:#34d399;"><span id="pOut">180.0</span> mW</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer">
+      <div class="wiki-pills">
+        <span>📚 Wiki 來源：</span>
+        <span class="wiki-pill">wiki/concepts/基本電學三要素.md</span>
+      </div>
+      <span>模組 0：前置基礎</span>
+    </div>
+  </section>
+
+  <!-- SLIDE 4: 模組 1A 波形與信號基礎 -->
+  <section class="slide" data-title="04. 模組一(上)：波形與信號基礎">
+    <div class="slide-header">
+      <div>
+        <span class="module-tag tag-blue">MODULE 1A · 波形與信號基礎</span>
+        <h2>電信號的語言：正弦波與非正弦波</h2>
+      </div>
+    </div>
+    <div class="slide-body">
+      <div class="grid-2">
+        <div class="card">
+          <h3>🌊 正弦波（Sine Wave）四大振幅指標</h3>
+          <svg viewBox="0 0 380 140" width="100%" height="135">
+            <line x1="20" y1="70" x2="360" y2="70" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4,3"/>
+            <line x1="30" y1="10" x2="30" y2="130" stroke="#475569" stroke-width="1.5"/>
+            <path d="M 30 70 Q 70 5, 110 70 T 190 70 T 270 70 T 350 70" fill="none" stroke="#2563eb" stroke-width="3"/>
+            <!-- Vp marker -->
+            <line x1="70" y1="37" x2="70" y2="70" stroke="#dc2626" stroke-width="1.5"/>
+            <text x="75" y="54" font-size="11" fill="#dc2626" font-weight="bold">Vp (峰值)</text>
+            <!-- Vrms line -->
+            <line x1="30" y1="47" x2="350" y2="47" stroke="#059669" stroke-width="1.2" stroke-dasharray="3,3"/>
+            <text x="245" y="42" font-size="11" fill="#059669" font-weight="bold">Vrms = 0.707 Vp</text>
+            <!-- Vpp marker -->
+            <line x1="150" y1="37" x2="150" y2="103" stroke="#7c3aed" stroke-width="1.5"/>
+            <text x="155" y="88" font-size="11" fill="#7c3aed" font-weight="bold">Vpp = 2 Vp</text>
+          </svg>
+          <ul class="clean-list" style="margin-top:6px;">
+            <li><strong>峰值 (<i>V</i><sub>p</sub>)</strong> 與 <strong>峰對峰值 (<i>V</i><sub>pp</sub> = 2<i>V</i><sub>p</sub>)</strong>：波浪的最大高度。</li>
+            <li><strong>有效值 (<i>V</i><sub>rms</sub> = <i>V</i><sub>p</sub> / &radic;2)</strong>：產生相同熱功率的等效直流電壓。</li>
+            <li><strong>家用市電真相</strong>：插座標示 110V 是 <i>V</i><sub>rms</sub>，實際波峰高達 <strong>155.6V</strong>！</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h3>⏱️ 非正弦波（方波 / 三角波 / 脈波）時間參數</h3>
+          <svg viewBox="0 0 380 140" width="100%" height="135">
+            <line x1="20" y1="110" x2="360" y2="110" stroke="#475569" stroke-width="1.5"/>
+            <path d="M 30 110 L 30 30 L 110 30 L 110 110 L 230 110 L 230 30 L 310 30 L 310 110" fill="none" stroke="#7c3aed" stroke-width="3"/>
+            <line x1="30" y1="20" x2="110" y2="20" stroke="#d97706" stroke-width="2"/>
+            <text x="70" y="15" text-anchor="middle" font-size="11" fill="#d97706" font-weight="bold">Ton (高電位時間)</text>
+            <line x1="30" y1="125" x2="230" y2="125" stroke="#0f172a" stroke-width="1.5"/>
+            <text x="130" y="137" text-anchor="middle" font-size="11" fill="#0f172a" font-weight="bold">週期 T = 1 / f</text>
+          </svg>
+          <ul class="clean-list" style="margin-top:6px;">
+            <li><strong>週期 (<i>T</i>) 與頻率 (<i>f</i>)</strong>：重複一次的時間與每秒次數（<i>f</i> = 1 / <i>T</i>）。</li>
+            <li><strong>責任週期 (Duty Cycle)</strong>：高電位時間佔整個週期的百分比：</li>
+          </ul>
+          <span class="formula">Duty Cycle = (T<sub>on</sub> / T) &times; 100%</span>
+          <p style="font-size:13.5px; margin-top:6px;">廣泛用於數位時脈（Clock）與 PWM 馬達調速、LED 調光。</p>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer">
+      <div class="wiki-pills">
+        <span>📚 Wiki 來源：</span>
+        <span class="wiki-pill">wiki/concepts/波形與信號基礎.md</span>
+      </div>
+      <span>模組 1：信號基礎</span>
+    </div>
+  </section>
+
+  <!-- SLIDE 5: 模組 1B 半導體、二極體與整流濾波 -->
+  <section class="slide" data-title="05. 模組一(下)：PN接面、二極體與整流濾波">
+    <div class="slide-header">
+      <div>
+        <span class="module-tag tag-blue">MODULE 1B · 半導體與電源轉換</span>
+        <h2>從交流到平穩直流：P-N 接面與整流濾波</h2>
+      </div>
+    </div>
+    <div class="slide-body">
+      <div class="grid-3">
+        <div class="card">
+          <h3>1. P-N 接面單向收費站</h3>
+          <p style="font-size:13.5px;"><strong>P 型</strong>（多數載子：電洞）與 <strong>N 型</strong>（多數載子：電子）結合形成<strong>空乏區</strong>與<strong>障壁電壓</strong>：</p>
+          <ul class="clean-list" style="margin-top:6px; font-size:13.5px;">
+            <li><strong>矽 (Si)</strong>：約 <strong>0.7V</strong>；<strong>鍺 (Ge)</strong>：約 <strong>0.3V</strong>。</li>
+            <li><strong>順向偏壓</strong>：大於門檻即導通。</li>
+            <li><strong>逆向偏壓</strong>：空乏區變寬、截止阻擋。</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h3>2. 特殊二極體家族</h3>
+          <ul class="clean-list" style="font-size:13.5px;">
+            <li><strong>稽納二極體 (Zener)</strong>：刻意操作於<strong>逆向崩潰區</strong>做直流穩壓（須串聯限流電阻並檢核最大功率 <i>P</i><sub>ZM</sub>）。</li>
+            <li><strong>發光二極體 (LED)</strong>：電能轉光能，順向壓降較高（約 <strong>1.8V ~ 3.3V</strong>）。</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h3>3. 電容濾波與漣波因數</h3>
+          <p style="font-size:13.5px;">整流後的脈動直流透過並聯<strong>電容充放電</strong>填平波谷，降低<strong>漣波因數</strong>：</p>
+          <span class="formula">r = V<sub>r(rms)</sub> / V<sub>dc</sub></span>
+          <p style="font-size:13px; margin-top:6px;"><i>r</i> 越小，代表直流電越接近一條平穩直線。</p>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>整流電路架構</th>
+            <th>二極體數量</th>
+            <th>變壓器需求</th>
+            <th>輸出直流平均值 (<i>V</i><sub>dc</sub>)</th>
+            <th>輸出漣波頻率</th>
+            <th>導通壓降損耗</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>半波整流</strong></td>
+            <td>1 顆</td>
+            <td>一般變壓器</td>
+            <td>&approx; 0.318 <i>V</i><sub>p(out)</sub></td>
+            <td>1 &times; <i>f</i><sub>in</sub></td>
+            <td>1 顆 (0.7V)</td>
+          </tr>
+          <tr>
+            <td><strong>全波整流（中心抽頭）</strong></td>
+            <td>2 顆</td>
+            <td>需中心抽頭變壓器</td>
+            <td>&approx; 0.636 <i>V</i><sub>p(out)</sub></td>
+            <td><strong>2 &times; <i>f</i><sub>in</sub></strong></td>
+            <td>1 顆 (0.7V)</td>
+          </tr>
+          <tr>
+            <td><strong>橋式整流（最常用）</strong></td>
+            <td>4 顆</td>
+            <td>一般變壓器</td>
+            <td>&approx; 0.636 <i>V</i><sub>p(out)</sub></td>
+            <td><strong>2 &times; <i>f</i><sub>in</sub></strong></td>
+            <td>2 顆 (1.4V)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="slide-footer">
+      <div class="wiki-pills">
+        <span>📚 Wiki 來源：</span>
+        <span class="wiki-pill">半導體與PN接面.md</span>
+        <span class="wiki-pill">二極體與特殊應用.md</span>
+        <span class="wiki-pill">整流與濾波電路.md</span>
+      </div>
+      <span>模組 1：二極體與整流</span>
+    </div>
+  </section>
+
+  <!-- SLIDE 6: 模組 2 BJT 與放大電路 -->
+  <section class="slide" data-title="06. 模組二：BJT 雙極性接面電晶體與放大器">
+    <div class="slide-header">
+      <div>
+        <span class="module-tag tag-emerald">MODULE 2 · BJT 電流控制放大器</span>
+        <h2>用小手轉動大水閥：BJT 工作區間與放大組態</h2>
+      </div>
+    </div>
+    <div class="slide-body">
+      <div class="grid-2">
+        <div class="card">
+          <h3>🎛️ 電流控制與三大工作區間</h3>
+          <p style="font-size:13.5px;">BJT 為<strong>電流控制元件</strong>（<i>I</i><sub>E</sub> = <i>I</i><sub>B</sub> + <i>I</i><sub>C</sub>），用微弱基極電流 <i>I</i><sub>B</sub> 控制集極大電流 <i>I</i><sub>C</sub>：</p>
+          <ul class="clean-list" style="margin-top:6px; font-size:13.5px;">
+            <li><strong>工作區 (Active)</strong>：B-E 順向、B-C 逆向 &rarr; <strong><i>I</i><sub>C</sub> = &beta;<i>I</i><sub>B</sub>（線性放大）</strong>。</li>
+            <li><strong>飽和區 (Saturation)</strong>：兩接面皆順向 &rarr; <strong>數位開關 ON</strong>。</li>
+            <li><strong>截止區 (Cutoff)</strong>：兩接面皆逆向 &rarr; <strong>數位開關 OFF</strong>。</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h3>⚖️ 直流偏壓與 Q 點穩定</h3>
+          <p style="font-size:13.5px;">如同「把鞦韆架在正中央」，<strong>分壓式偏壓</strong>搭配射極負回授電阻 <i>R</i><sub>E</sub> 可穩定靜態工作點（Q 點）於<strong>交流負載線中央</strong>：</p>
+          <ul class="clean-list" style="margin-top:6px; font-size:13.5px;">
+            <li>防止正負半週撞牆造成<strong>截波失真（Clipping）</strong>。</li>
+            <li>抑制溫度升高導致電流暴衝的<strong>熱失控（Thermal Runaway）</strong>。</li>
+            <li><strong>多級串級</strong>：RC 耦合隔直通交（低頻受限）；直接耦合可放大直流（須克服準位飄移）。</li>
+          </ul>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>BJT 單級組態</th>
+            <th>電壓增益 (<i>A</i><sub>v</sub>)</th>
+            <th>電流增益 (<i>A</i><sub>i</sub>)</th>
+            <th>輸入/輸出相位</th>
+            <th>輸入 / 輸出阻抗</th>
+            <th>核心工程角色</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>共射極 (CE)</strong></td>
+            <td><strong>高</strong></td>
+            <td><strong>高 (&approx; &beta;)</strong></td>
+            <td><strong>反相 (180&deg;)</strong></td>
+            <td>中等 / 中高</td>
+            <td>主力電壓與功率放大級</td>
+          </tr>
+          <tr>
+            <td><strong>共集極 (CC / 射極隨耦器)</strong></td>
+            <td>略小於 1</td>
+            <td><strong>高 (&approx; &beta;+1)</strong></td>
+            <td>同相 (0&deg;)</td>
+            <td><strong>極高 / 極低</strong></td>
+            <td>緩衝級 (Buffer) 與阻抗匹配</td>
+          </tr>
+          <tr>
+            <td><strong>共基極 (CB)</strong></td>
+            <td><strong>高</strong></td>
+            <td>略小於 1 (&alpha; &lt; 1)</td>
+            <td>同相 (0&deg;)</td>
+            <td><strong>極低 / 高</strong></td>
+            <td>高頻射頻（RF）放大級</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="slide-footer">
+      <div class="wiki-pills">
+        <span>📚 Wiki 來源：</span>
+        <span class="wiki-pill">BJT基本原理與工作區間.md</span>
+        <span class="wiki-pill">BJT直流偏壓與Q點穩定.md</span>
+        <span class="wiki-pill">BJT單級與多級放大組態.md</span>
+      </div>
+      <span>模組 2：BJT 電晶體</span>
+    </div>
+  </section>
+
+  <!-- SLIDE 7: 模組 3 MOSFET 與疊接架構 -->
+  <section class="slide" data-title="07. 模組三：MOSFET 與 Cascode 高頻架構">
+    <div class="slide-header">
+      <div>
+        <span class="module-tag tag-indigo">MODULE 3 · MOSFET 電壓控制放大器</span>
+        <h2>隔空感應的靜電水閘：MOSFET 與疊接架構</h2>
+      </div>
+    </div>
+    <div class="slide-body">
+      <div class="grid-2">
+        <div class="card">
+          <h3>⚡ 電壓控制與平方律特性</h3>
+          <ul class="clean-list" style="font-size:13.5px;">
+            <li><strong>極高輸入阻抗</strong>：閘極隔著二氧化矽（SiO<sub>2</sub>）絕緣層，直流電流 <strong><i>I</i><sub>G</sub> &approx; 0</strong>，純靠電壓產生電場控制通道。</li>
+            <li><strong>增強型 (E-MOSFET)</strong> 須超過臨界電壓 <i>V</i><sub>t</sub> 才建立通道（另有預植通道的空乏型 D-MOSFET）。</li>
+            <li><strong>飽和區（夾止區）線性放大公式</strong>：</li>
+          </ul>
+          <span class="formula">I<sub>D</sub> = k (V<sub>GS</sub> &minus; V<sub>t</sub>)<sup>2</sup></span>
+          <p style="font-size:13px; margin-top:6px;">偏壓常採<strong>分壓偏壓</strong>（無負載效應）或<strong>汲極回授偏壓</strong>（強制 <i>V</i><sub>GS</sub> = <i>V</i><sub>DS</sub> 鎖定飽和區）。</p>
+        </div>
+
+        <div class="card">
+          <h3>🚀 單級對照與疊接放大器 (Cascode)</h3>
+          <ul class="clean-list" style="font-size:13.5px;">
+            <li><strong>單級組態完美對應 BJT</strong>：共源極 (CS &harr; CE 主放大)、共汲極 (CD 源極隨耦器 &harr; CC 緩衝)、共閘極 (CG &harr; CB 高頻)。</li>
+            <li><strong>疊接架構 (Cascode = CS 串接 CG)</strong>：在 CS 上方疊加 CG，釘住 CS 汲極電壓波動，大幅抑制寄生電容引發的<strong>密勒效應（Miller Effect）</strong>，展延高頻頻寬！</li>
+            <li><strong>直接耦合</strong>：現代類比積體電路（IC）的核心連接方式。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="trap-box">
+        <strong>🚨 初學者頭號陷阱：「BJT 飽和區」vs.「MOSFET 飽和區」完全相反！</strong><br>
+        • <strong>BJT 飽和區</strong> = 電流塞滿、壓降極小 &rarr; 用作<strong>數位開關 ON</strong>。<br>
+        • <strong>MOSFET 飽和區（夾止區）</strong> = 通道夾止、電流穩定受控於 <i>V</i><sub>GS</sub> &rarr; 用作<strong>類比線性放大</strong>！
+      </div>
+    </div>
+    <div class="slide-footer">
+      <div class="wiki-pills">
+        <span>📚 Wiki 來源：</span>
+        <span class="wiki-pill">MOSFET基本原理與特性.md</span>
+        <span class="wiki-pill">MOSFET直流偏壓設計.md</span>
+        <span class="wiki-pill">MOSFET放大組態與疊接架構.md</span>
+      </div>
+      <span>模組 3：MOSFET 電晶體</span>
+    </div>
+  </section>
+
+  <!-- SLIDE 8: 模組 4 CMOS 數位邏輯電路 -->
+  <section class="slide" data-title="08. 模組四：CMOS 互補式數位邏輯電路">
+    <div class="slide-header">
+      <div>
+        <span class="module-tag tag-violet">MODULE 4 · 從類比邁向數位 VLSI</span>
+        <h2>一開一關的互補雙閘門：CMOS 反相器與邏輯閘</h2>
+      </div>
+    </div>
+    <div class="slide-body">
+      <div class="grid-2">
+        <div class="card">
+          <h3>🔄 CMOS 互補原理與對偶規則</h3>
+          <ul class="clean-list" style="font-size:13.5px;">
+            <li><strong>互補架構</strong>：上方 <strong>PMOS（上拉網路）</strong> + 下方 <strong>NMOS（下拉網路）</strong>。穩態時必有一顆截止，因此<strong>靜態功耗趨近於零</strong>、具備<strong>滿擺幅輸出（0V 至 <i>V</i><sub>DD</sub>）</strong>與<strong>高雜訊邊限</strong>。</li>
+            <li><strong>互補對偶原則</strong>：PMOS 與 NMOS 的串並聯結構必定相反：
+              <br>• <strong>反及閘 (NAND)</strong>：上方 PMOS <strong>並聯</strong>、下方 NMOS <strong>串聯</strong>（4 顆電晶體）。
+              <br>• <strong>反或閘 (NOR)</strong>：上方 PMOS <strong>串聯</strong>、下方 NMOS <strong>並聯</strong>（4 顆電晶體）。
+            </li>
+            <li><strong>VLSI 擴充</strong>：NAND / NOR 後方加一級反相器即構成 AND / OR 閘，進而建構數十億電晶體的 CPU。</li>
+          </ul>
+        </div>
+
+        <div class="card card-highlight">
+          <h3>🧪 互動模擬：CMOS 邏輯閘即時真值表測試</h3>
+          <p style="font-size:13px; margin-bottom:10px;">點擊切換輸入 A 與 B 的邏輯電位（0 = 0V, 1 = V<sub>DD</sub>），觀察內部 PMOS/NMOS 導通狀態：</p>
+          <div class="sim-control">
+            <div class="sim-row">
+              <span><strong>輸入 A</strong>：<button class="toggle-btn" id="btnA">0 (LOW)</button></span>
+              <span><strong>輸入 B</strong>：<button class="toggle-btn" id="btnB">0 (LOW)</button></span>
+            </div>
+            <div style="background:#0f172a; color:#f8fafc; padding:12px; border-radius:8px; font-size:13.5px; display:flex; flex-direction:column; gap:8px;">
+              <div style="display:flex; justify-content:space-between;">
+                <span>反相器 NOT(A)：</span>
+                <strong id="outNot" style="color:#38bdf8;">1 (PMOS 導通 / NMOS 截止)</strong>
+              </div>
+              <div style="display:flex; justify-content:space-between;">
+                <span>反及閘 NAND(A, B)：</span>
+                <strong id="outNand" style="color:#34d399;">1 (上並導通 / 下串截止)</strong>
+              </div>
+              <div style="display:flex; justify-content:space-between;">
+                <span>反或閘 NOR(A, B)：</span>
+                <strong id="outNor" style="color:#fbbf24;">1 (上串導通 / 下並截止)</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer">
+      <div class="wiki-pills">
+        <span>📚 Wiki 來源：</span>
+        <span class="wiki-pill">CMOS反相器與互補原理.md</span>
+        <span class="wiki-pill">CMOS邏輯閘與數位電路擴充.md</span>
+      </div>
+      <span>模組 4：CMOS 數位邏輯</span>
+    </div>
+  </section>
+
+  <!-- SLIDE 9: 模組 5A 理想 OPA 與負回授線性電路 -->
+  <section class="slide" data-title="09. 模組五(上)：理想 OPA 與負回授線性電路">
+    <div class="slide-header">
+      <div>
+        <span class="module-tag tag-amber">MODULE 5A · 運算放大器線性應用</span>
+        <h2>超自律的自動平衡天平：理想 OPA 與負回授</h2>
+      </div>
+    </div>
+    <div class="slide-body">
+      <div class="grid-2">
+        <div class="card">
+          <h3>🏛️ 理想 OPA 與負回授兩大黃金法則</h3>
+          <p style="font-size:13.5px;">理想 OPA 具備<strong>無限大開迴路增益</strong>、<strong>無限大輸入阻抗</strong>與<strong>零輸出阻抗</strong>。當接入<strong>負回授</strong>時，自動成立兩大法則：</p>
+          <div style="margin:10px 0; display:flex; flex-direction:column; gap:6px;">
+            <span class="formula">1. 虛短路 (Virtual Short)：V<sub>+</sub> &approx; V<sub>&minus;</sub></span>
+            <span class="formula">2. 虛斷路 (Virtual Open)：I<sub>+</sub> = I<sub>&minus;</sub> &approx; 0</span>
+          </div>
+          <p style="font-size:13px; color:#475569;">註：虛短路是指兩輸入端電位相等，並非真的用導線接在一起，且僅在<strong>負回授</strong>時成立！</p>
+        </div>
+
+        <div class="card">
+          <h3>🧮 五大經典線性運算電路</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>電路名稱</th>
+                <th>增益 / 運算功能</th>
+                <th>相位與特性</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>反相放大器</strong></td>
+                <td><i>A</i><sub>v</sub> = &minus;<i>R</i><sub>f</sub> / <i>R</i><sub>i</sub></td>
+                <td>輸出與輸入反相 180&deg;</td>
+              </tr>
+              <tr>
+                <td><strong>非反相放大器</strong></td>
+                <td><i>A</i><sub>v</sub> = 1 + (<i>R</i><sub>f</sub> / <i>R</i><sub>i</sub>)</td>
+                <td>同相輸出、輸入阻抗極高</td>
+              </tr>
+              <tr>
+                <td><strong>加法器 / 減法器</strong></td>
+                <td>多訊號加權總和 / 差值</td>
+                <td>音訊混音、消除共模雜訊</td>
+              </tr>
+              <tr>
+                <td><strong>積分器 / 微分器</strong></td>
+                <td>將電阻替換為<strong>電容</strong></td>
+                <td>實現波形微積分（方波&rarr;三角波）</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer">
+      <div class="wiki-pills">
+        <span>📚 Wiki 來源：</span>
+        <span class="wiki-pill">wiki/concepts/理想OPA與負回授線性電路.md</span>
+      </div>
+      <span>模組 5：OPA 線性電路</span>
+    </div>
+  </section>
+
+  <!-- SLIDE 10: 模組 5B 比較器、波形產生與主動濾波器 -->
+  <section class="slide" data-title="10. 模組五(下)：比較器、振盪器與主動濾波器">
+    <div class="slide-header">
+      <div>
+        <span class="module-tag tag-amber">MODULE 5B · 非線性應用與頻率篩選</span>
+        <h2>抗雜訊開關、自給自足節拍器與智慧濾波器</h2>
+      </div>
+    </div>
+    <div class="slide-body">
+      <div class="grid-3">
+        <div class="card">
+          <h3>1. 比較器與施密特觸發器</h3>
+          <ul class="clean-list" style="font-size:13.5px;">
+            <li><strong>開迴路比較器</strong>：操作於飽和區，比較 <i>V</i><sub>+</sub> 與 <i>V</i><sub>&minus;</sub> 將類比電壓轉成數位高低準位。</li>
+            <li><strong>施密特觸發器 (Schmitt Trigger)</strong>：引入<strong>正回授</strong>產生<strong>磁滯現象</strong>，擁有上下雙臨界電壓（<i>V</i><sub>UT</sub>, <i>V</i><sub>LT</sub>），徹底消除雜訊造成的誤觸發。</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h3>2. 波形產生器（振盪器）</h3>
+          <ul class="clean-list" style="font-size:13.5px;">
+            <li><strong>正弦波振盪器</strong>：須滿足<strong>巴克豪森準則</strong>（迴路增益 <strong>|<i>A&beta;</i>| = 1</strong> 且總相移 <strong>0&deg; 或 360&deg;</strong>），如韋恩電橋（Wien-Bridge）與 RC 相移振盪器。</li>
+            <li><strong>方波 &rarr; 三角波</strong>：無穩態多諧振盪器利用 RC 充放電產生方波，再串接<strong>積分器</strong>即輸出三角波。</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h3>3. 主動濾波器 (LPF / HPF)</h3>
+          <p style="font-size:13.5px;">結合 <strong>OPA + RC 網路</strong>（免用笨重電感），構成一階低通（LPF）與高通（HPF）濾波器：</p>
+          <span class="formula">f<sub>c</sub> = 1 / (2&pi;RC)</span>
+          <p style="font-size:13px; margin-top:6px;">在截止頻率 <i>f</i><sub>c</sub> 處增益下降 <strong>&minus;3dB</strong>（振幅為 0.707 倍），超過後平滑衰減而非一刀切斷。</p>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer">
+      <div class="wiki-pills">
+        <span>📚 Wiki 來源：</span>
+        <span class="wiki-pill">OPA比較器與波形產生器.md</span>
+        <span class="wiki-pill">主動濾波器與頻率響應.md</span>
+      </div>
+      <span>模組 5：OPA 振盪與濾波</span>
+    </div>
+  </section>
+
+  <!-- SLIDE 11: 隨堂互動測驗 -->
+  <section class="slide" data-title="11. 新手隨堂測驗與知識檢核">
+    <div class="slide-header">
+      <div>
+        <span class="module-tag tag-emerald">KNOWLEDGE CHECK · 互動學習檢核</span>
+        <h2>隨堂小測驗：測試你掌握了多少電子學核心觀念！</h2>
+      </div>
+      <div id="quizScoreBox" style="font-weight:700; color:#2563eb; font-size:15px;">得分：0 / 5</div>
+    </div>
+    <div class="slide-body" style="gap:10px;">
+      <div class="quiz-item" data-answer="1" data-exp="✅ 正確！110V 為有效值（Vrms），真實波峰 Vp = 110 × √2 ≈ 155.6V。（來源：波形與信號基礎.md）">
+        <div class="quiz-q">1. 台灣家用插座標示 110V 交流電，請問它的真實最高波峰電壓（Vp）大約是多少？</div>
+        <div class="quiz-options">
+          <button class="quiz-opt" data-idx="0">A. 110V</button>
+          <button class="quiz-opt" data-idx="1">B. 155.6V</button>
+          <button class="quiz-opt" data-idx="2">C. 77.8V</button>
+        </div>
+        <div class="quiz-feedback"></div>
+      </div>
+
+      <div class="quiz-item" data-answer="2" data-exp="✅ 正確！BJT 飽和區用作開關 ON；MOSFET 飽和區（夾止區）才是用作類比線性放大！（來源：MOSFET基本原理與特性.md）">
+        <div class="quiz-q">2. 關於「飽和區」的用途，下列哪一項敘述完全正確？</div>
+        <div class="quiz-options">
+          <button class="quiz-opt" data-idx="0">A. BJT 與 MOSFET 的飽和區都用來做線性放大</button>
+          <button class="quiz-opt" data-idx="1">B. BJT 與 MOSFET 的飽和區都用來做數位開關 ON</button>
+          <button class="quiz-opt" data-idx="2">C. BJT 飽和區是開關 ON，MOSFET 飽和區是線性放大</button>
+        </div>
+        <div class="quiz-feedback"></div>
+      </div>
+
+      <div class="quiz-item" data-answer="0" data-exp="✅ 正確！根據互補對偶原則，NAND 閘上方 PMOS 並聯、下方 NMOS 串聯。（來源：CMOS邏輯閘與數位電路擴充.md）">
+        <div class="quiz-q">3. 設計一個 CMOS 反及閘（NAND）時，上下兩組電晶體的串並聯結構為何？</div>
+        <div class="quiz-options">
+          <button class="quiz-opt" data-idx="0">A. 上方 PMOS 並聯、下方 NMOS 串聯</button>
+          <button class="quiz-opt" data-idx="1">B. 上方 PMOS 串聯、下方 NMOS 並聯</button>
+          <button class="quiz-opt" data-idx="2">C. 上下方皆為串聯</button>
+        </div>
+        <div class="quiz-feedback"></div>
+      </div>
+
+      <div class="quiz-item" data-answer="1" data-exp="✅ 正確！施密特觸發器利用正回授產生雙臨界電壓（VUT 與 VLT），能有效抑制雜訊抖動。（來源：OPA比較器與波形產生器.md）">
+        <div class="quiz-q">4. 哪一種 OPA 電路利用「正回授」產生磁滯與雙臨界電壓，專門用來防止輸入雜訊誤觸發？</div>
+        <div class="quiz-options">
+          <button class="quiz-opt" data-idx="0">A. 反相放大器</button>
+          <button class="quiz-opt" data-idx="1">B. 施密特觸發器（Schmitt Trigger）</button>
+          <button class="quiz-opt" data-idx="2">C. 橋式整流器</button>
+        </div>
+        <div class="quiz-feedback"></div>
+      </div>
+
+      <div class="quiz-item" data-answer="0" data-exp="✅ 正確！Cascode（CS 串接 CG）釘住下級汲極電壓變化，大幅抑制高頻密勒效應。（來源：MOSFET放大組態與疊接架構.md）">
+        <div class="quiz-q">5. 疊接放大器（Cascode，由 CS 串接 CG）在多級放大電路中的最主要優勢為何？</div>
+        <div class="quiz-options">
+          <button class="quiz-opt" data-idx="0">A. 抑制密勒效應（Miller Effect），展延高頻頻寬</button>
+          <button class="quiz-opt" data-idx="1">B. 降低輸入阻抗以提升直流功耗</button>
+          <button class="quiz-opt" data-idx="2">C. 將交流電轉換為直流電</button>
+        </div>
+        <div class="quiz-feedback"></div>
+      </div>
+    </div>
+    <div class="slide-footer">
+      <div class="wiki-pills">
+        <span>📚 涵蓋全庫 16 個概念節點 · 編譯完成</span>
+      </div>
+      <span>恭喜完成基礎電子學入門課程！</span>
+    </div>
+  </section>
+
+</main>
+
+<script>
+  (function () {
+    const slides = Array.from(document.querySelectorAll('.slide'));
+    const select = document.getElementById('slideSelect');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const indicator = document.getElementById('pageIndicator');
+    const progressFill = document.getElementById('progressFill');
+    let current = 0;
+
+    // Populate dropdown
+    slides.forEach((slide, idx) => {
+      const opt = document.createElement('option');
+      opt.value = idx;
+      opt.textContent = slide.dataset.title || `第 ${idx + 1} 頁`;
+      select.appendChild(opt);
+    });
+
+    function showSlide(index) {
+      if (index < 0 || index >= slides.length) return;
+      slides[current].classList.remove('active');
+      current = index;
+      slides[current].classList.add('active');
+      select.value = current;
+      indicator.textContent = `${current + 1} / ${slides.length}`;
+      progressFill.style.width = `${((current + 1) / slides.length) * 100}%`;
+      prevBtn.disabled = current === 0;
+      nextBtn.disabled = current === slides.length - 1;
+    }
+
+    prevBtn.addEventListener('click', () => showSlide(current - 1));
+    nextBtn.addEventListener('click', () => showSlide(current + 1));
+    select.addEventListener('change', (e) => showSlide(Number(e.target.value)));
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === 'PageDown') showSlide(current + 1);
+      if (e.key === 'ArrowLeft' || e.key === 'PageUp') showSlide(current - 1);
+    });
+
+    // Slide 3: Ohm's Law Interactive Simulator
+    const vRange = document.getElementById('vRange');
+    const rRange = document.getElementById('rRange');
+    function updateOhm() {
+      const v = Number(vRange.value);
+      const r = Number(rRange.value);
+      const i_mA = (v / r) * 1000;
+      const p_mW = v * i_mA;
+      document.getElementById('vVal').textContent = v;
+      document.getElementById('rVal').textContent = r;
+      document.getElementById('iOut').textContent = i_mA.toFixed(1);
+      document.getElementById('pOut').textContent = p_mW.toFixed(1);
+    }
+    vRange.addEventListener('input', updateOhm);
+    rRange.addEventListener('input', updateOhm);
+
+    // Slide 8: CMOS Logic Gate Simulator
+    let stateA = 0, stateB = 0;
+    const btnA = document.getElementById('btnA');
+    const btnB = document.getElementById('btnB');
+
+    function updateCmos() {
+      btnA.textContent = stateA ? '1 (HIGH)' : '0 (LOW)';
+      btnA.classList.toggle('on', stateA === 1);
+      btnB.textContent = stateB ? '1 (HIGH)' : '0 (LOW)';
+      btnB.classList.toggle('on', stateB === 1);
+
+      const notVal = stateA ? 0 : 1;
+      document.getElementById('outNot').textContent = notVal
+        ? '1 (PMOS 導通 / NMOS 截止)'
+        : '0 (PMOS 截止 / NMOS 導通)';
+
+      const nandVal = (stateA && stateB) ? 0 : 1;
+      document.getElementById('outNand').textContent = nandVal
+        ? '1 (上並導通 / 下串截止)'
+        : '0 (上並全截止 / 下串全導通)';
+
+      const norVal = (stateA || stateB) ? 0 : 1;
+      document.getElementById('outNor').textContent = norVal
+        ? '1 (上串全導通 / 下並全截止)'
+        : '0 (上串截止 / 下並導通)';
+    }
+
+    btnA.addEventListener('click', () => { stateA = stateA ? 0 : 1; updateCmos(); });
+    btnB.addEventListener('click', () => { stateB = stateB ? 0 : 1; updateCmos(); });
+
+    // Slide 11: Interactive Quiz
+    let score = 0;
+    document.querySelectorAll('.quiz-item').forEach((item) => {
+      const correctIdx = Number(item.dataset.answer);
+      const expText = item.dataset.exp;
+      const fb = item.querySelector('.quiz-feedback');
+      const opts = item.querySelectorAll('.quiz-opt');
+
+      opts.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          if (item.dataset.answered) return;
+          item.dataset.answered = 'true';
+          const chosen = Number(btn.dataset.idx);
+          if (chosen === correctIdx) {
+            btn.classList.add('correct');
+            score++;
+            document.getElementById('quizScoreBox').textContent = `得分：${score} / 5`;
+            fb.textContent = expText;
+          } else {
+            btn.classList.add('wrong');
+            opts[correctIdx].classList.add('correct');
+            fb.textContent = `❌ 再想一下！${expText.replace('✅ 正確！', '')}`;
+          }
+          fb.style.display = 'block';
+        });
+      });
+    });
+
+    showSlide(0);
+  })();
+</script>
+</body>
+</html>
