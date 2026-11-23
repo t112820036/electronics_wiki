@@ -1,1 +1,1 @@
-# buck_converter_wiki
+# electronics_wiki
